@@ -1,0 +1,7 @@
+{
+  "name": "sae501",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
