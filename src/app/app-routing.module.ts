@@ -14,7 +14,19 @@ const routes: Routes = [
   {
     path: 'login',
     loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
+  },  {
+    path: 'historique',
+    loadChildren: () => import('./historique/historique.module').then( m => m.HistoriquePageModule)
   },
+  {
+    path: 'compte',
+    loadChildren: () => import('./compte/compte.module').then( m => m.ComptePageModule)
+  },
+  {
+    path: 'modal-confirmation',
+    loadChildren: () => import('./modal-confirmation/modal-confirmation.module').then( m => m.ModalConfirmationPageModule)
+  },
+
 ];
 
 @NgModule({

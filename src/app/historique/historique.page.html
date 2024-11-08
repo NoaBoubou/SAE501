@@ -1,0 +1,37 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Historique</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  
+<ion-searchbar [debounce]="750" (ionInput)="handleInput($event)"></ion-searchbar>
+
+<ion-grid [fixed]="true">
+  <ion-row>
+    <ion-col>Classe d'objet</ion-col>
+    <ion-col>Indice de confiance</ion-col>
+    <ion-col>Date</ion-col>
+    <ion-col>Lien de l'image</ion-col>
+  </ion-row>
+
+  <ion-row *ngFor="let histo of data">
+    <ion-col>
+      {{ histo.object_class }}
+    </ion-col>
+    <ion-col>
+      {{ histo.confidence }}
+    </ion-col>
+    <ion-col>
+      {{ histo.date }}
+    </ion-col>
+    <ion-col>
+      <a href="{{ histo.image }}">Voir l'image</a>
+    </ion-col>
+  </ion-row>
+
+</ion-grid>
+
+
+</ion-content>
