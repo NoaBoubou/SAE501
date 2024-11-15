@@ -1,16 +1,33 @@
-// This file can be replaced during build by using the `fileReplacements` array.
-// `ng build` replaces `environment.ts` with `environment.prod.ts`.
-// The list of file replacements can be found in `angular.json`.
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
+import { initializeAuth, indexedDBLocalPersistence } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 
-export const environment = {
-  production: false
+const firebaseConfig = {
+  apiKey: 'AIzaSyAe7ZfllWgiZBxV4i8TsEIWRfyKEie7UI0',
+  authDomain: 'sae501-14837.firebaseapp.com',
+  projectId: 'sae501-14837',
+  storageBucket: 'sae501-14837.firebasestorage.app',
+  messagingSenderId: '600568281242',
+  appId: '1:600568281242:web:79f11e6714b2a1cbb34723',
+  measurementId: 'G-M5CXYTVLL0',
 };
 
-/*
- * For easier debugging in development mode, you can import the following file
- * to ignore zone related error stack frames such as `zone.run`, `zoneDelegate.invokeTask`.
- *
- * This import should be commented out in production mode because it will have a negative impact
- * on performance if an error is thrown.
- */
-// import 'zone.js/plugins/zone-error';  // Included with Angular CLI.
+const app = initializeApp(firebaseConfig);
+
+function whichAuth() {
+  let auth;
+  if (Capacitor.isNativePlatform()) {
+    auth = initializeAuth(app, {
+      persistence: indexedDBLocalPersistence,
+    });
+  } else {
+    auth = getAuth();
+  }
+  return auth;
+}
+
+export const auth = whichAuth();
+
+export const db = getFirestore(app);
