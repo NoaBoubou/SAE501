@@ -1,0 +1,7 @@
+npm install @capacitor/camera
+npm run build
+npx cap sync
+ionic cap sync android
+
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />

@@ -1,0 +1,21 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Reconnaissance d'objets</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="image-container">
+    <img src="path/to/your/image.jpg" alt="Image de reconnaissance" class="capture-image">
+  </div>
+</ion-content>
+
+<!-- Utilisation du composant de la barre de navigation -->
+<app-navbar></app-navbar>
+
+<!-- Bouton rond centré en bas -->
+<div class="capture-button-container">
+  <ion-button shape="round" fill="solid" size="large" color="dark" (click)="takePicture()">
+    test<!-- Icône ou texte -->
+  </ion-button>
+</div>

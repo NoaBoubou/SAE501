@@ -1,7 +1,8 @@
 {
   "name": "sae501",
   "integrations": {
-    "capacitor": {}
+    "capacitor": {},
+    "cordova": {}
   },
   "type": "angular"
 }
