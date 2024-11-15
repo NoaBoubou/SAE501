@@ -18,11 +18,6 @@ const routes: Routes = [
       import('./login/login.module').then((m) => m.LoginPageModule),
   },
   {
-    path: 'signup',
-    loadChildren: () =>
-      import('./signup/signup.module').then((m) => m.SignupPageModule),
-  },
-  {
     path: 'historique',
     loadChildren: () =>
       import('./historique/historique.module').then(
@@ -33,6 +28,11 @@ const routes: Routes = [
     path: 'compte',
     loadChildren: () =>
       import('./compte/compte.module').then((m) => m.ComptePageModule),
+  },
+  {
+    path: 'signup',
+    loadChildren: () =>
+      import('./signup/signup.module').then((m) => m.SignupPageModule),
   },
 ];
 
