@@ -1,11 +1,13 @@
 import { NgModule } from '@angular/core';
 import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
+import { authGuard } from '../app/guards/auth.guard';
 
 const routes: Routes = [
   {
     path: 'home',
     loadChildren: () =>
       import('./home/home.module').then((m) => m.HomePageModule),
+    canActivate: [authGuard],
   },
   {
     path: '',
@@ -23,11 +25,13 @@ const routes: Routes = [
       import('./historique/historique.module').then(
         (m) => m.HistoriquePageModule
       ),
+    canActivate: [authGuard],
   },
   {
     path: 'compte',
     loadChildren: () =>
       import('./compte/compte.module').then((m) => m.ComptePageModule),
+    canActivate: [authGuard],
   },
   {
     path: 'signup',
