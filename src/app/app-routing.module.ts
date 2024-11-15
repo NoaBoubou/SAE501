@@ -18,11 +18,6 @@ const routes: Routes = [
       import('./login/login.module').then((m) => m.LoginPageModule),
   },
   {
-    path: 'signup',
-    loadChildren: () =>
-      import('./signup/signup.module').then((m) => m.SignupPageModule),
-  },
-  {
     path: 'historique',
     loadChildren: () =>
       import('./historique/historique.module').then(
@@ -34,6 +29,11 @@ const routes: Routes = [
     loadChildren: () =>
       import('./compte/compte.module').then((m) => m.ComptePageModule),
   },
+  {
+    path: 'signup',
+    loadChildren: () =>
+      import('./signup/signup.module').then((m) => m.SignupPageModule),
+  },
 ];
 
 @NgModule({
@@ -43,4 +43,3 @@ const routes: Routes = [
   exports: [RouterModule],
 })
 export class AppRoutingModule {}
-
