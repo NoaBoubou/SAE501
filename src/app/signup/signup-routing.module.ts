@@ -1,17 +1,17 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
-import { ModalConfirmationPageModule } from './modal-confirmation.module';
+import { SignupPage } from './signup.page';
 
 const routes: Routes = [
   {
     path: '',
-    component: ModalConfirmationPageModule
-  }
+    component: SignupPage,
+  },
 ];
 
 @NgModule({
   imports: [RouterModule.forChild(routes)],
   exports: [RouterModule],
 })
-export class ModalConfirmationPageRoutingModule {}
+export class SignupPageRoutingModule {}
