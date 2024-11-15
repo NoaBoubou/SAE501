@@ -8,18 +8,25 @@ const routes: Routes = [
   },
   {
     path: '',
-    redirectTo: 'acceuil',
+    redirectTo: 'home',
     pathMatch: 'full'
   },
   {
-    path: 'camera',
-    loadChildren: () => import('./camera/camera.module').then( m => m.CameraPageModule)
+    path: 'login',
+    loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
   },
   {
-    path: 'acceuil',
-    loadChildren: () => import('./acceuil/acceuil.module').then( m => m.AcceuilPageModule)
+    path: 'historique',
+    loadChildren: () => import('./historique/historique.module').then( m => m.HistoriquePageModule)
   },
-
+  {
+    path: 'compte',
+    loadChildren: () => import('./compte/compte.module').then( m => m.ComptePageModule)
+  },
+  {
+    path: 'modal-confirmation',
+    loadChildren: () => import('./modal-confirmation/modal-confirmation.module').then( m => m.ModalConfirmationPageModule)
+  },
 ];
 
 @NgModule({

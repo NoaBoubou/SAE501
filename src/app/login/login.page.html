@@ -1,0 +1,54 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Login</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Login</ion-title>
+    </ion-toolbar>
+  </ion-header>
+  <form (ngSubmit)="onLogin()" class="ion-margin-top">
+    <ion-item class="ion-margin">
+      <ion-input
+        type="email"
+        [(ngModel)]="email"
+        label="Email"
+        name="email"
+        required
+        labelPlacement="stacked"
+        placeholder="email@domain.com"
+      ></ion-input>
+    </ion-item>
+
+    <ion-item class="ion-margin">
+      <ion-input
+        [type]="passwordType"
+        [(ngModel)]="password"
+        name="Password"
+        required
+        labelPlacement="stacked"
+        label="password"
+      >
+        <ion-icon slot="start" name="lock-closed" aria-hidden="true"></ion-icon>
+        <ion-button
+          fill="clear"
+          slot="end"
+          aria-label="Show/hide"
+          (click)="changeInputPasswordType()"
+        >
+          <ion-icon
+            slot="icon-only"
+            [name]="(passwordType === 'password') ? 'eye-off' : 'eye'"
+            aria-hidden="true"
+          ></ion-icon>
+        </ion-button>
+      </ion-input>
+    </ion-item>
+    <ion-button expand="block" type="submit" color="primary" class="ion-margin">
+      Login
+    </ion-button>
+  </form>
+</ion-content>
