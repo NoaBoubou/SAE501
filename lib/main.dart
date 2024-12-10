@@ -1,8 +1,10 @@
 import 'dart:io';
-import 'package:camera/camera.dart';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tflite_v2/tflite_v2.dart';
+import 'package:flutter_vision/flutter_vision.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/painting.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,6 +13,7 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -34,12 +37,20 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   File? _imageSelectionnee;
-  List<dynamic>? _recognitions;
+  List<Map<String, dynamic>>? _recognitions;
+  final FlutterVision _vision = FlutterVision();
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    loadModel(); // Chargez le modèle au démarrage
+    _loadModel(); // Charge le modèle YOLO au démarrage
+  }
+
+  @override
+  void dispose() {
+    _vision.closeYoloModel(); // Libère les ressources du modèle
+    super.dispose();
   }
 
   @override
@@ -50,20 +61,22 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: SingleChildScrollView(
+        child: _isLoading
+            ? const CircularProgressIndicator()
+            : SingleChildScrollView(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               const SizedBox(height: 20),
 
-              // Affiche l'image sélectionnée ou une image par défaut
+              // Affiche l'image annotée ou une image par défaut
               _imageSelectionnee != null
                   ? Image.file(_imageSelectionnee!)
                   : Image.asset('assets/galery.png'),
 
               const SizedBox(height: 20),
 
-              // Affiche les résultats de reconnaissance
+              // Résultats de la reconnaissance
               if (_recognitions != null && _recognitions!.isNotEmpty)
                 Column(
                   children: [
@@ -77,7 +90,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     const SizedBox(height: 10),
                     ..._recognitions!.map((result) {
                       return Text(
-                        'Index: ${result['index']}, Étiquette: ${result['label']}, Confiance: ${(result['confidence'] * 100).toStringAsFixed(2)}%',
+                        'Objet: ${result['tag']}, Confiance: ${(result['box'][4] * 100).toStringAsFixed(2)}%',
                         style: const TextStyle(fontSize: 14),
                       );
                     }).toList(),
@@ -86,20 +99,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
               const SizedBox(height: 20),
 
-              // Affiche les boutons en fonction de l'état de l'image
+              // Boutons pour charger ou réinitialiser les images
               _imageSelectionnee == null
                   ? Column(
                 children: [
                   ElevatedButton(
-                    onPressed: () {
-                      _prendreImageCamera();
-                    },
+                    onPressed: _prendreImageCamera,
                     child: const Text("Prendre une photo avec la caméra"),
                   ),
                   ElevatedButton(
-                    onPressed: () {
-                      _prendreImageGalerie();
-                    },
+                    onPressed: _prendreImageGalerie,
                     child: const Text("Prendre une photo de la galerie"),
                   ),
                 ],
@@ -107,15 +116,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   : Column(
                 children: [
                   ElevatedButton(
-                    onPressed: () {
-                      _enregisterImage();
-                    },
+                    onPressed: _enregisterImage,
                     child: const Text("Enregistrer"),
                   ),
                   ElevatedButton(
-                    onPressed: () {
-                      _annulerImage();
-                    },
+                    onPressed: _annulerImage,
                     child: const Text("Annuler"),
                   ),
                 ],
@@ -128,7 +133,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future _prendreImageGalerie() async {
-    final imageRetournee = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final imageRetournee =
+    await ImagePicker().pickImage(source: ImageSource.gallery);
     if (imageRetournee == null) return;
     setState(() {
       _imageSelectionnee = File(imageRetournee.path);
@@ -137,7 +143,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future _prendreImageCamera() async {
-    final imageRetournee = await ImagePicker().pickImage(source: ImageSource.camera);
+    final imageRetournee =
+    await ImagePicker().pickImage(source: ImageSource.camera);
     if (imageRetournee == null) return;
     setState(() {
       _imageSelectionnee = File(imageRetournee.path);
@@ -146,10 +153,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future _enregisterImage() async {
-    // Ajouter ici le code pour enregistrer l'image
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Image enregistrée !")),
-    );
   }
 
   Future _annulerImage() async {
@@ -159,32 +162,114 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Future _detectImage(File image) async {
-    int startTime = DateTime.now().millisecondsSinceEpoch;
+  Future<File> _annoterImage(File image, List<Map<String, dynamic>> recognitions) async {
+    final imageBytes = await image.readAsBytes();
+    final originalImage = await decodeImageFromList(imageBytes);
 
-    var recognitions = await Tflite.runModelOnImage(
-      path: image.path,
-      numResults: 6,
-      threshold: 0.05,
-      imageMean: 127.5,
-      imageStd: 127.5,
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    // Dessiner l'image originale
+    final paintImage = Paint();
+    canvas.drawImage(
+      originalImage,
+      Offset.zero,
+      paintImage,
     );
 
-    setState(() {
-      _recognitions = recognitions;
-    });
+    // Dessiner les boîtes et labels
+    final paintBox = Paint()
+      ..color = const Color(0xFFFF0000)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
 
-    int endTime = DateTime.now().millisecondsSinceEpoch;
-    print("Inference took ${endTime - startTime}ms");
+
+    final textPainter = TextPainter(
+      textAlign: TextAlign.left,
+      textDirection: TextDirection.ltr,
+    );
+
+    for (final result in recognitions) {
+      final box = result['box'];
+      final tag = result['tag'];
+      final confidence = (box[4] * 100).toStringAsFixed(2);
+
+      // Dessiner la boîte
+      canvas.drawRect(
+        Rect.fromLTRB(
+          box[0].toDouble(),
+          box[1].toDouble(),
+          box[2].toDouble(),
+          box[3].toDouble(),
+        ),
+        paintBox,
+      );
+
+      // Dessiner le label
+      final textSpan = TextSpan(
+        text: '$tag ($confidence%)',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+        ),
+      );
+      textPainter.text = textSpan;
+      textPainter.layout();
+      textPainter.paint(canvas, Offset(box[0].toDouble(), box[1].toDouble() - 20));
+    }
+
+    final picture = recorder.endRecording();
+    final annotatedImage = await picture.toImage(
+      originalImage.width,
+      originalImage.height,
+    );
+
+    final byteData = await annotatedImage.toByteData(format: ui.ImageByteFormat.png);
+    final annotatedImageBytes = byteData!.buffer.asUint8List();
+
+    final directory = await getTemporaryDirectory();
+    final path = '${directory.path}/annotated_image.png';
+    final annotatedFile = File(path);
+    await annotatedFile.writeAsBytes(annotatedImageBytes);
+
+    return annotatedFile;
   }
 
-  loadModel() async {
-    await Tflite.loadModel(
-      model: "assets/yolov8n_float32.tflite",
-      labels: "assets/labels.txt",
-      numThreads: 1,
-      isAsset: true,
-      useGpuDelegate: false,
+  Future _detectImage(File image) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final imageBytes = await image.readAsBytes();
+    final result = await _vision.yoloOnImage(
+      bytesList: imageBytes,
+      imageHeight: 640,
+      imageWidth: 640,
+      confThreshold: 0.4,
+      iouThreshold: 0.4,
+      classThreshold: 0.5,
     );
+    print("résultat de la détection");
+    print(result);
+
+    final annotatedImage = await _annoterImage(image, result.cast<Map<String, dynamic>>());
+
+    setState(() {
+      _recognitions = result.cast<Map<String, dynamic>>();
+      _imageSelectionnee = annotatedImage;
+      _isLoading = false;
+    });
+  }
+
+  _loadModel() async {
+    await _vision.loadYoloModel(
+      labels: 'assets/labels.txt',
+      modelPath: 'assets/yolov5.tflite',
+      modelVersion: "yolov5",
+      quantization: false,
+      numThreads: 1,
+      useGpu: false,
+    );
+    print("Modèle chargé");
   }
 }
