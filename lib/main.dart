@@ -5,9 +5,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_vision/flutter_vision.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/painting.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:untitled/login_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(); // Initialisation de Firebase
   runApp(const MyApp());
 }
 
@@ -17,12 +22,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Détection',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Détection d\'objets'),
+      title: 'Flutter Firebase Auth',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const LoginPage(), // Page par défaut : LoginPage
     );
   }
 }
@@ -59,6 +61,21 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              // Déconnexion Firebase
+              await FirebaseAuth.instance.signOut();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LoginPage(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Center(
         child: _isLoading
@@ -68,15 +85,10 @@ class _MyHomePageState extends State<MyHomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               const SizedBox(height: 20),
-
-              // Affiche l'image annotée ou une image par défaut
               _imageSelectionnee != null
                   ? Image.file(_imageSelectionnee!)
                   : Image.asset('assets/galery.png'),
-
               const SizedBox(height: 20),
-
-              // Résultats de la reconnaissance
               if (_recognitions != null && _recognitions!.isNotEmpty)
                 Column(
                   children: [
@@ -93,13 +105,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         'Objet: ${result['tag']}, Confiance: ${(result['box'][4] * 100).toStringAsFixed(2)}%',
                         style: const TextStyle(fontSize: 14),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
-
               const SizedBox(height: 20),
-
-              // Boutons pour charger ou réinitialiser les images
               _imageSelectionnee == null
                   ? Column(
                 children: [
@@ -134,7 +143,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future _prendreImageGalerie() async {
     final imageRetournee =
-    await ImagePicker().pickImage(source: ImageSource.gallery);
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (imageRetournee == null) return;
     setState(() {
       _imageSelectionnee = File(imageRetournee.path);
@@ -144,7 +153,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future _prendreImageCamera() async {
     final imageRetournee =
-    await ImagePicker().pickImage(source: ImageSource.camera);
+        await ImagePicker().pickImage(source: ImageSource.camera);
     if (imageRetournee == null) return;
     setState(() {
       _imageSelectionnee = File(imageRetournee.path);
@@ -153,6 +162,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future _enregisterImage() async {
+    // Implémentation future si nécessaire
   }
 
   Future _annulerImage() async {
@@ -169,7 +179,6 @@ class _MyHomePageState extends State<MyHomePage> {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
 
-    // Dessiner l'image originale
     final paintImage = Paint();
     canvas.drawImage(
       originalImage,
@@ -177,12 +186,10 @@ class _MyHomePageState extends State<MyHomePage> {
       paintImage,
     );
 
-    // Dessiner les boîtes et labels
     final paintBox = Paint()
       ..color = const Color(0xFFFF0000)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0;
-
 
     final textPainter = TextPainter(
       textAlign: TextAlign.left,
@@ -194,7 +201,6 @@ class _MyHomePageState extends State<MyHomePage> {
       final tag = result['tag'];
       final confidence = (box[4] * 100).toStringAsFixed(2);
 
-      // Dessiner la boîte
       canvas.drawRect(
         Rect.fromLTRB(
           box[0].toDouble(),
@@ -205,10 +211,9 @@ class _MyHomePageState extends State<MyHomePage> {
         paintBox,
       );
 
-      // Dessiner le label
       final textSpan = TextSpan(
         text: '$tag ($confidence%)',
-        style: TextStyle(
+        style: const TextStyle(
           color: Colors.white,
           fontSize: 16,
         ),

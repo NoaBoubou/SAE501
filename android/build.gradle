@@ -1,7 +1,7 @@
 allprojects {
     repositories {
-        google()
-        mavenCentral()
+        google() // Nécessaire pour Firebase et les plugins Google
+        mavenCentral() // Nécessaire pour les dépendances Maven
     }
     subprojects {
         afterEvaluate { project ->
@@ -22,6 +22,18 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+buildscript {
+    repositories {
+        google() // Assurez-vous que ce dépôt est inclus
+        mavenCentral() // Assurez-vous que ce dépôt est inclus
+    }
+    dependencies {
+        // Ajoutez cette ligne pour Firebase
+        classpath 'com.android.tools.build:gradle:7.4.2' // Vérifiez que cette version est compatible avec Gradle
+        classpath 'com.google.gms:google-services:4.3.15' // Plugin Google Services
+    }
 }
 
 tasks.register("clean", Delete) {
