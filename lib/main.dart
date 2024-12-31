@@ -1,13 +1,16 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_vision/flutter_vision.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/painting.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:untitled/historique.dart';
 import 'package:untitled/login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 
 void main() async {
@@ -49,6 +52,35 @@ class _MyHomePageState extends State<MyHomePage> {
     _loadModel(); // Charge le modèle YOLO au démarrage
   }
 
+  final userId = FirebaseAuth.instance.currentUser?.uid;
+
+
+  Future<List<Map<String, dynamic>>> getHistorique() async {
+    FirebaseFirestore db = FirebaseFirestore.instance;
+    List<Map<String, dynamic>> historiqueData = [];
+
+    try {
+      QuerySnapshot usersSnapshot = await db.collection("users").get();
+
+      var historiqueSnapshot = await db.collection("users").doc(userId).collection("historique").get();
+
+        for (var histoDoc in historiqueSnapshot.docs) {
+          Map<String, dynamic> entry = {
+            'userId': userId,
+            'historiqueId': histoDoc.id,
+            ...histoDoc.data(),
+          };
+
+          historiqueData.add(entry);
+        }
+    } catch (e) {
+      print("Erreur lors de la récupération de l'historique : $e");
+    }
+    print(historiqueData);
+
+    return historiqueData;
+  }
+
   @override
   void dispose() {
     _vision.closeYoloModel(); // Libère les ressources du modèle
@@ -84,6 +116,44 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(child: CircularProgressIndicator()),
+                  );
+
+                  try {
+                    List<Map<String, dynamic>> historiqueData = await getHistorique();
+                    Navigator.pop(context);
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => HistoriquePage(historique: historiqueData),
+                      ),
+                    );
+                  } catch (e) {
+                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text("Erreur"),
+                        content: Text("Impossible de récupérer l'historique : $e"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("OK"),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                },
+                child: const Text("Voir l'historique"),
+              ),
               const SizedBox(height: 20),
               _imageSelectionnee != null
                   ? Image.file(_imageSelectionnee!)
@@ -125,7 +195,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   : Column(
                 children: [
                   ElevatedButton(
-                    onPressed: _enregisterImage,
+                    onPressed: _enregistrerImageFirestore,
                     child: const Text("Enregistrer"),
                   ),
                   ElevatedButton(
@@ -138,6 +208,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
+
     );
   }
 
@@ -161,14 +232,59 @@ class _MyHomePageState extends State<MyHomePage> {
     _detectImage(_imageSelectionnee!);
   }
 
-  Future _enregisterImage() async {
-    // Implémentation future si nécessaire
+  Future _enregistrerImageFirestore() async {
+    try {
+      DocumentReference userDoc = FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid);
+      CollectionReference historiqueCollection = userDoc.collection('historique');
+      DateTime today = DateTime.now();
+      String dateStr = "${today.day}/${today.month}/${today.year}";
+
+      Map<String, dynamic> data = {
+        'resultats': resultats,
+        'date': dateStr,
+      };
+
+      DocumentReference docRef = await historiqueCollection.add(data);
+      String docId = docRef.id;
+
+      print('Données enregistrées : $data');
+
+      _enregistrerImageStorage(docId);
+
+      return(docId);
+    } catch (e) {
+      print('Erreur lors de l\'enregistrement dans Firebase : $e');
+    }
+  }
+
+  Future _enregistrerImageStorage(String docId) async {
+    if (_imageSelectionnee != null) {
+      print("rentré !");
+      try {
+        FirebaseStorage storage = FirebaseStorage.instance;
+
+        String filePath = 'user/$userId/$docId.jpg';
+        Reference ref = storage.ref().child(filePath);
+
+        UploadTask uploadTask = ref.putFile(_imageSelectionnee!);
+
+        setState(() {
+          _imageSelectionnee = null;
+          _recognitions = null;
+          resultats = [];
+        });
+
+      } catch (e) {
+        print('Erreur lors du téléchargement de l\'image: $e');
+      }
+    }
   }
 
   Future _annulerImage() async {
     setState(() {
       _imageSelectionnee = null;
       _recognitions = null;
+      resultats = [];
     });
   }
 
@@ -240,6 +356,8 @@ class _MyHomePageState extends State<MyHomePage> {
     return annotatedFile;
   }
 
+  List<Map<String, dynamic>> resultats = [];
+
   Future _detectImage(File image) async {
     setState(() {
       _isLoading = true;
@@ -255,12 +373,27 @@ class _MyHomePageState extends State<MyHomePage> {
       classThreshold: 0.5,
     );
     print("résultat de la détection");
-    print(result);
+
+    for (var detection in result) {
+      var objectClass = detection['tag'];
+      var confiance = "${(detection['box'][4] * 100).toStringAsFixed(2)}%";
+
+      var resultMap = {
+        'object_class': objectClass,
+        'confiance': confiance,
+      };
+
+      print(resultMap);
+
+      resultats.add(resultMap);
+    }
+
+    print(resultats);
 
     final annotatedImage = await _annoterImage(image, result.cast<Map<String, dynamic>>());
 
     setState(() {
-      _recognitions = result.cast<Map<String, dynamic>>();
+      _recognitions = result.cast<Map<String, dynamic>>(); // Met à jour la variable _recognitions
       _imageSelectionnee = annotatedImage;
       _isLoading = false;
     });
