@@ -11,7 +11,7 @@ import 'package:untitled/historique.dart';
 import 'package:untitled/login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-
+import 'package:untitled/tab.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,8 +27,26 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Firebase Auth',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const LoginPage(), // Page par défaut : LoginPage
+      home: const AuthChecker(), // Page par défaut : LoginPage
     );
+  }
+}
+
+class AuthChecker extends StatelessWidget {
+  const AuthChecker({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Vérifie si un utilisateur est connecté
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      // Utilisateur connecté
+      return const TabPage();
+    } else {
+      // Utilisateur non connecté
+      return const LoginPage();
+    }
   }
 }
 
@@ -117,7 +135,7 @@ class _MyHomePageState extends State<MyHomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               const SizedBox(height: 20),
-              ElevatedButton(
+              /*ElevatedButton(
                 onPressed: () async {
                   showDialog(
                     context: context,
@@ -153,7 +171,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   }
                 },
                 child: const Text("Voir l'historique"),
-              ),
+              ),*/
               const SizedBox(height: 20),
               _imageSelectionnee != null
                   ? Image.file(_imageSelectionnee!)
@@ -182,25 +200,29 @@ class _MyHomePageState extends State<MyHomePage> {
               _imageSelectionnee == null
                   ? Column(
                 children: [
-                  ElevatedButton(
+                  ElevatedButton.icon(
                     onPressed: _prendreImageCamera,
-                    child: const Text("Prendre une photo avec la caméra"),
+                    icon : Icon(Icons.camera_alt),
+                    label: const Text("Prendre une photo avec la caméra"),
                   ),
-                  ElevatedButton(
-                    onPressed: _prendreImageGalerie,
-                    child: const Text("Prendre une photo de la galerie"),
+                  ElevatedButton.icon(
+                    onPressed: _prendreImageCamera,
+                    icon : Icon(Icons.photo_album),
+                    label: const Text("Prendre une photo de la galerie"),
                   ),
                 ],
               )
                   : Column(
                 children: [
-                  ElevatedButton(
+                  ElevatedButton.icon(
                     onPressed: _enregistrerImageFirestore,
-                    child: const Text("Enregistrer"),
+                    icon : Icon(Icons.save),
+                    label: const Text("Enregistrer"),
                   ),
-                  ElevatedButton(
+                  ElevatedButton.icon(
                     onPressed: _annulerImage,
-                    child: const Text("Annuler"),
+                    icon : Icon(Icons.cancel),
+                    label: const Text("Annuler"),
                   ),
                 ],
               ),

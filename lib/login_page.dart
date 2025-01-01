@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'main.dart'; // Importez MyHomePage
 import 'register_page.dart';
+import 'tab.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -47,7 +48,7 @@ class _LoginPageState extends State<LoginPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => const MyHomePage(title: 'Détection d\'objets'),
+            builder: (context) => const TabPage(),//builder: (context) => const MyHomePage(title: 'Détection d\'objets'),
           ),
         );
       } on FirebaseAuthException catch (e) {

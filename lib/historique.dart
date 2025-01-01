@@ -1,10 +1,15 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/painting.dart';
+import 'package:untitled/login_page.dart';
 
 class HistoriquePage extends StatelessWidget {
   final List<Map<String, dynamic>> historique;
+  final String title;  // Ajout du paramètre title
 
-  const HistoriquePage({Key? key, required this.historique}) : super(key: key);
+  const HistoriquePage({Key? key, required this.historique, required this.title}) : super(key: key);
+
 
   Future<String> getImgByDetection(String userId, String detectionId) async {
     try {
@@ -22,7 +27,23 @@ class HistoriquePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Historique'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(this.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              // Déconnexion Firebase
+              await FirebaseAuth.instance.signOut();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LoginPage(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: ListView.builder(
         itemCount: historique.length,

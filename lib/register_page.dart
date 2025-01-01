@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'main.dart'; // Importez MyHomePage pour la redirection
+import 'tab.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -64,7 +65,7 @@ class _RegisterPageState extends State<RegisterPage> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => const MyHomePage(title: 'Détection d\'objets'),
+              builder: (context) => const TabPage(),//builder: (context) => const MyHomePage(title: 'Détection d\'objets'),
             ),
           );
         } on FirebaseAuthException catch (e) {
