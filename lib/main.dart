@@ -200,32 +200,47 @@ class _MyHomePageState extends State<MyHomePage> {
               _imageSelectionnee == null
                   ? Column(
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _prendreImageCamera,
-                    icon : Icon(Icons.camera_alt),
-                    label: const Text("Prendre une photo avec la caméra"),
+                  SizedBox(
+                    width: 300,
+                    child: ElevatedButton.icon(
+                      onPressed: _prendreImageCamera,
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text("Prendre une photo avec la caméra"),
+                    ),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: _prendreImageCamera,
-                    icon : Icon(Icons.photo_album),
-                    label: const Text("Prendre une photo de la galerie"),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: 300,
+                    child: ElevatedButton.icon(
+                      onPressed: _prendreImageGalerie,
+                      icon: const Icon(Icons.photo_album),
+                      label: const Text("Prendre une photo de la galerie"),
+                    ),
                   ),
                 ],
               )
-                  : Column(
+               : Column(
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _enregistrerImageFirestore,
-                    icon : Icon(Icons.save),
-                    label: const Text("Enregistrer"),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _enregistrerImageFirestore,
+                      icon: const Icon(Icons.save),
+                      label: const Text("Enregistrer"),
+                    ),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: _annulerImage,
-                    icon : Icon(Icons.cancel),
-                    label: const Text("Annuler"),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _annulerImage,
+                      icon: const Icon(Icons.cancel),
+                      label: const Text("Annuler"),
+                    ),
                   ),
                 ],
               ),
+
             ],
           ),
         ),

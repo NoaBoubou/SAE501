@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'login_page.dart';
 
 class ComptePage extends StatefulWidget {
-  final String title;  // Ajout du paramètre title
+  final String title;
   const ComptePage({Key? key, required this.title}) : super(key: key);
 
   @override
@@ -16,8 +16,14 @@ class _ComptePageState extends State<ComptePage> {
   late String userName = '';
   late String userEmail = '';
   bool isLoading = true;
+  bool isEditing = false;
 
-  // Fonction pour récupérer les données de l'utilisateur
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _confirmEmailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   Future<void> getUserData() async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -32,6 +38,8 @@ class _ComptePageState extends State<ComptePage> {
           setState(() {
             userName = userData['name'] ?? 'Nom non disponible';
             userEmail = userData['email'] ?? 'Email non disponible';
+            _nameController.text = userName;
+            _emailController.text = userEmail;
             isLoading = false;
           });
         } else {
@@ -40,7 +48,6 @@ class _ComptePageState extends State<ComptePage> {
           });
         }
       } else {
-        // Si l'utilisateur n'est pas connecté
         setState(() {
           isLoading = false;
         });
@@ -50,6 +57,53 @@ class _ComptePageState extends State<ComptePage> {
         isLoading = false;
       });
       print("Erreur lors de la récupération des données : $e");
+    }
+  }
+
+  Future<void> updateUserData() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        // Ré-authentification avec le mot de passe
+        AuthCredential credential = EmailAuthProvider.credential(
+          email: user.email!,
+          password: _passwordController.text,
+        );
+
+        await user.reauthenticateWithCredential(credential);
+
+        if (_emailController.text == _confirmEmailController.text) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .update({
+            'name': _nameController.text,
+            'email': _emailController.text,
+          });
+
+          setState(() {
+            userName = _nameController.text;
+            userEmail = _emailController.text;
+            isEditing = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Informations mises à jour avec succès !')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Les emails ne correspondent pas.')),
+          );
+        }
+      }
+    } catch (e) {
+      print("Erreur lors de la mise à jour des données : $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors de la mise à jour des informations')),
+      );
     }
   }
 
@@ -69,8 +123,8 @@ class _ComptePageState extends State<ComptePage> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              // Déconnexion Firebase
               await FirebaseAuth.instance.signOut();
+              // Déconnexion Firebase
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
@@ -82,16 +136,185 @@ class _ComptePageState extends State<ComptePage> {
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())  // Affichage pendant le chargement
-          : Padding(
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Nom: $userName', style: TextStyle(fontSize: 20)),
-            const SizedBox(height: 10),
-            Text('Email: $userEmail', style: TextStyle(fontSize: 20)),
-          ],
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              // Mode Lecture (Affichage uniquement)
+              if (!isEditing)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Card(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.person, size: 32, color: Colors.blue),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                '$userName',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Card(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.email, size: 32, color: Colors.orange),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                '$userEmail',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            isEditing = true;
+                          });
+                        },
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Modifier'),
+                      ),
+                    ),
+                  ],
+                ),
+              if (isEditing)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Nom',
+                        prefixIcon: const Icon(Icons.person),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Veuillez entrer un nom';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: const Icon(Icons.email),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Veuillez entrer un email';
+                        }
+                        if (!RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$")
+                            .hasMatch(value)) {
+                          return 'Veuillez entrer un email valide';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _confirmEmailController,
+                      decoration: InputDecoration(
+                        labelText: 'Confirmez l\'email',
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value != _emailController.text) {
+                          return 'Les emails ne correspondent pas.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Mot de passe',
+                        prefixIcon: const Icon(Icons.lock),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Veuillez entrer votre mot de passe.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 30),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: updateUserData,
+                          icon: const Icon(Icons.save),
+                          label: const Text('Enregistrer'),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              isEditing = false;
+                              _nameController.text = userName;
+                              _emailController.text = userEmail;
+                            });
+                          },
+                          icon: const Icon(Icons.cancel),
+                          label: const Text('Annuler'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );
