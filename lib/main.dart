@@ -439,7 +439,7 @@ class _MyHomePageState extends State<MyHomePage> {
   _loadModel() async {
     await _vision.loadYoloModel(
       labels: 'assets/labels.txt',
-      modelPath: 'assets/yolov5.tflite',
+      modelPath: 'assets/best-fp16.tflite',
       modelVersion: "yolov5",
       quantization: false,
       numThreads: 1,

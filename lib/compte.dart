@@ -67,7 +67,21 @@ class _ComptePageState extends State<ComptePage> {
       User? user = FirebaseAuth.instance.currentUser;
 
       if (user != null) {
-        // Ré-authentification avec le mot de passe
+        // Vérifie si l'e-mail existe déjà
+        List<String> signInMethods = await FirebaseAuth.instance
+            .fetchSignInMethodsForEmail(_emailController.text);
+
+        if (signInMethods.isNotEmpty && _emailController.text != user.email) {
+          // Si l'e-mail existe déjà et est différent de l'e-mail actuel
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cet e-mail est déjà utilisé par un autre utilisateur.'),
+            ),
+          );
+          return;
+        }
+
+        // Réauthentification avec le mot de passe
         AuthCredential credential = EmailAuthProvider.credential(
           email: user.email!,
           password: _passwordController.text,
@@ -75,37 +89,41 @@ class _ComptePageState extends State<ComptePage> {
 
         await user.reauthenticateWithCredential(credential);
 
-        if (_emailController.text == _confirmEmailController.text) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .update({
-            'name': _nameController.text,
-            'email': _emailController.text,
-          });
+        // Mise à jour de l'email directement dans Firebase Authentication
+        await user.updateEmail(_emailController.text);
 
-          setState(() {
-            userName = _nameController.text;
-            userEmail = _emailController.text;
-            isEditing = false;
-          });
+        // Mise à jour des données dans Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({
+          'name': _nameController.text,
+          'email': _emailController.text,
+        });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Informations mises à jour avec succès !')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Les emails ne correspondent pas.')),
-          );
-        }
+        // Message de succès
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Informations mises à jour avec succès. Veuillez vous reconnecter.'),
+          ),
+        );
+
+        // Déconnecter l'utilisateur et le rediriger vers la page de connexion
+        FirebaseAuth.instance.signOut();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+        );
       }
     } catch (e) {
-      print("Erreur lors de la mise à jour des données : $e");
+      print("Erreur : ${e.toString()}");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors de la mise à jour des informations')),
+        SnackBar(content: Text('Erreur : ${e}')),
       );
     }
   }
+
+
 
   @override
   void initState() {
