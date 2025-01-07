@@ -45,7 +45,14 @@ class HistoriquePage extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView.builder(
+      body: historique.isEmpty
+          ? Center(
+        child: Text(
+          'Aucun historique disponible.',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16),
+        ),
+      )
+          : ListView.builder(
         itemCount: historique.length,
         itemBuilder: (context, index) {
           final entry = historique[index];
@@ -66,25 +73,26 @@ class HistoriquePage extends StatelessWidget {
                 }).toList(),
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child:Center
-                  (child: ElevatedButton(
-                    onPressed: () async {
-                      final imageUrl = await getImgByDetection(userId, detectionId);
-                      if (imageUrl.isNotEmpty) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ImageDisplayPage(imageUrl: imageUrl),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Image introuvable')),
-                        );
-                      }
-                    },
-                    child: const Text('Voir Image'),
-                  ),)
+                  child: Center(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final imageUrl = await getImgByDetection(userId, detectionId);
+                        if (imageUrl.isNotEmpty) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ImageDisplayPage(imageUrl: imageUrl),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Image introuvable')),
+                          );
+                        }
+                      },
+                      child: const Text('Voir Image'),
+                    ),
+                  ),
                 ),
               ],
             ),
