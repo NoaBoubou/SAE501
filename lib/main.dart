@@ -284,9 +284,11 @@ class _MyHomePageState extends State<MyHomePage> {
       DocumentReference docRef = await historiqueCollection.add(data);
       String docId = docRef.id;
 
-      print('Données enregistrées : $data');
-
       _enregistrerImageStorage(docId);
+
+      setState(() {
+        _imageSelectionnee = null;
+      });
 
       return(docId);
     } catch (e) {
