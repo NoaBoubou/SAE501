@@ -82,8 +82,8 @@ Betterave
 Beurre  
 Boeuf  
 Brocoli  
-Carotte  
-Carrote  
+Carotte
+Carotte
 Céleri  
 Cerise  
 Chou-fleur  

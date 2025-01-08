@@ -67,12 +67,10 @@ class _ComptePageState extends State<ComptePage> {
       User? user = FirebaseAuth.instance.currentUser;
 
       if (user != null) {
-        // Vérifie si l'e-mail existe déjà
         List<String> signInMethods = await FirebaseAuth.instance
             .fetchSignInMethodsForEmail(_emailController.text);
 
         if (signInMethods.isNotEmpty && _emailController.text != user.email) {
-          // Si l'e-mail existe déjà et est différent de l'e-mail actuel
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Cet e-mail est déjà utilisé par un autre utilisateur.'),
@@ -81,7 +79,6 @@ class _ComptePageState extends State<ComptePage> {
           return;
         }
 
-        // Réauthentification avec le mot de passe
         AuthCredential credential = EmailAuthProvider.credential(
           email: user.email!,
           password: _passwordController.text,
@@ -89,10 +86,8 @@ class _ComptePageState extends State<ComptePage> {
 
         await user.reauthenticateWithCredential(credential);
 
-        // Mise à jour de l'email directement dans Firebase Authentication
         await user.updateEmail(_emailController.text);
 
-        // Mise à jour des données dans Firestore
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -101,14 +96,12 @@ class _ComptePageState extends State<ComptePage> {
           'email': _emailController.text,
         });
 
-        // Message de succès
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Informations mises à jour avec succès. Veuillez vous reconnecter.'),
           ),
         );
 
-        // Déconnecter l'utilisateur et le rediriger vers la page de connexion
         FirebaseAuth.instance.signOut();
         Navigator.pushReplacement(
           context,
@@ -135,14 +128,13 @@ class _ComptePageState extends State<ComptePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Colors.orange,
         title: Text(widget.title),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
-              // Déconnexion Firebase
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
@@ -163,7 +155,6 @@ class _ComptePageState extends State<ComptePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              // Mode Lecture (Affichage uniquement)
               if (!isEditing)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,7 +194,7 @@ class _ComptePageState extends State<ComptePage> {
                         padding: const EdgeInsets.all(16.0),
                         child: Row(
                           children: [
-                            const Icon(Icons.email, size: 32, color: Colors.orange),
+                            const Icon(Icons.email, size: 32, color: Colors.blue),
                             const SizedBox(width: 16),
                             Expanded(
                               child: Text(
@@ -225,8 +216,9 @@ class _ComptePageState extends State<ComptePage> {
                             isEditing = true;
                           });
                         },
-                        icon: const Icon(Icons.edit),
-                        label: const Text('Modifier'),
+                        icon: const Icon(Icons.edit, color: Colors.orange,),
+                        label: const Text('Modifier', style: TextStyle(color: Colors.black),
+                        ),
                       ),
                     ),
                   ],
@@ -313,8 +305,9 @@ class _ComptePageState extends State<ComptePage> {
                       children: [
                         ElevatedButton.icon(
                           onPressed: updateUserData,
-                          icon: const Icon(Icons.save),
-                          label: const Text('Enregistrer'),
+                          icon: const Icon(Icons.save, color: Colors.orange,),
+                          label: const Text('Enregistrer', style: TextStyle(color: Colors.black),
+                          ),
                         ),
                         ElevatedButton.icon(
                           onPressed: () {
@@ -324,8 +317,9 @@ class _ComptePageState extends State<ComptePage> {
                               _emailController.text = userEmail;
                             });
                           },
-                          icon: const Icon(Icons.cancel),
-                          label: const Text('Annuler'),
+                          icon: const Icon(Icons.cancel, color: Colors.orange,),
+                          label: const Text('Annuler', style: TextStyle(color: Colors.black),
+                          ),
                         ),
                       ],
                     ),

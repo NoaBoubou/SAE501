@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_vision/flutter_vision.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/painting.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -15,7 +16,7 @@ import 'package:untitled/tab.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); // Initialisation de Firebase
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -25,9 +26,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Flutter Firebase Auth',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const AuthChecker(), // Page par défaut : LoginPage
+      theme: ThemeData(primarySwatch: Colors.orange),
+      home: const AuthChecker(),
     );
   }
 }
@@ -37,14 +39,11 @@ class AuthChecker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Vérifie si un utilisateur est connecté
     User? user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-      // Utilisateur connecté
       return const TabPage();
     } else {
-      // Utilisateur non connecté
       return const LoginPage();
     }
   }
@@ -67,7 +66,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _loadModel(); // Charge le modèle YOLO au démarrage
+    _loadModel();
   }
 
   final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -82,15 +81,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
       var historiqueSnapshot = await db.collection("users").doc(userId).collection("historique").get();
 
-        for (var histoDoc in historiqueSnapshot.docs) {
-          Map<String, dynamic> entry = {
-            'userId': userId,
-            'historiqueId': histoDoc.id,
-            ...histoDoc.data(),
-          };
+      for (var histoDoc in historiqueSnapshot.docs) {
+        Map<String, dynamic> entry = {
+          'userId': userId,
+          'historiqueId': histoDoc.id,
+          ...histoDoc.data(),
+        };
 
-          historiqueData.add(entry);
-        }
+        historiqueData.add(entry);
+      }
     } catch (e) {
       print("Erreur lors de la récupération de l'historique : $e");
     }
@@ -101,7 +100,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    _vision.closeYoloModel(); // Libère les ressources du modèle
+    _vision.closeYoloModel();
     super.dispose();
   }
 
@@ -109,13 +108,12 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Colors.orange,
         title: Text(widget.title),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              // Déconnexion Firebase
               await FirebaseAuth.instance.signOut();
               Navigator.pushReplacement(
                 context,
@@ -135,43 +133,6 @@ class _MyHomePageState extends State<MyHomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               const SizedBox(height: 20),
-              /*ElevatedButton(
-                onPressed: () async {
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => const Center(child: CircularProgressIndicator()),
-                  );
-
-                  try {
-                    List<Map<String, dynamic>> historiqueData = await getHistorique();
-                    Navigator.pop(context);
-
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => HistoriquePage(historique: historiqueData),
-                      ),
-                    );
-                  } catch (e) {
-                    Navigator.pop(context);
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text("Erreur"),
-                        content: Text("Impossible de récupérer l'historique : $e"),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("OK"),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                },
-                child: const Text("Voir l'historique"),
-              ),*/
               const SizedBox(height: 20),
               _imageSelectionnee != null
                   ? Image.file(_imageSelectionnee!)
@@ -204,8 +165,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     width: 300,
                     child: ElevatedButton.icon(
                       onPressed: _prendreImageCamera,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text("Prendre une photo avec la caméra"),
+                      icon: const Icon(Icons.camera_alt, color: Colors.orange,),
+                      label: const Text(
+                        "Prendre une photo avec la caméra",
+                        style: TextStyle(color: Colors.black),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -213,20 +177,23 @@ class _MyHomePageState extends State<MyHomePage> {
                     width: 300,
                     child: ElevatedButton.icon(
                       onPressed: _prendreImageGalerie,
-                      icon: const Icon(Icons.photo_album),
-                      label: const Text("Prendre une photo de la galerie"),
+                      icon: const Icon(Icons.photo_album, color: Colors.orange,),
+                      label: const Text("Prendre une photo de la galerie",
+                          style: TextStyle(color: Colors.black)
+                      ),
                     ),
                   ),
                 ],
               )
-               : Column(
+                  : Column(
                 children: [
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: _enregistrerImageFirestore,
-                      icon: const Icon(Icons.save),
-                      label: const Text("Enregistrer"),
+                      icon: const Icon(Icons.save, color: Colors.orange,),
+                      label: const Text("Enregistrer", style: TextStyle(color: Colors.black),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -234,8 +201,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: _annulerImage,
-                      icon: const Icon(Icons.cancel),
-                      label: const Text("Annuler"),
+                      icon: const Icon(Icons.cancel, color: Colors.orange,),
+                      label: const Text("Annuler", style: TextStyle(color: Colors.black),
+                      ),
                     ),
                   ),
                 ],
@@ -251,7 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future _prendreImageGalerie() async {
     final imageRetournee =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
+    await ImagePicker().pickImage(source: ImageSource.gallery);
     if (imageRetournee == null) return;
     setState(() {
       _imageSelectionnee = File(imageRetournee.path);
@@ -261,7 +229,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future _prendreImageCamera() async {
     final imageRetournee =
-        await ImagePicker().pickImage(source: ImageSource.camera);
+    await ImagePicker().pickImage(source: ImageSource.camera);
     if (imageRetournee == null) return;
     setState(() {
       _imageSelectionnee = File(imageRetournee.path);
@@ -274,7 +242,8 @@ class _MyHomePageState extends State<MyHomePage> {
       DocumentReference userDoc = FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid);
       CollectionReference historiqueCollection = userDoc.collection('historique');
       DateTime today = DateTime.now();
-      String dateStr = "${today.day}/${today.month}/${today.year}";
+
+      String dateStr = DateFormat("dd/MM/yyyy").format(today);
 
       Map<String, dynamic> data = {
         'resultats': resultats,
@@ -298,7 +267,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future _enregistrerImageStorage(String docId) async {
     if (_imageSelectionnee != null) {
-      print("rentré !");
       try {
         FirebaseStorage storage = FirebaseStorage.instance;
 
@@ -347,8 +315,8 @@ class _MyHomePageState extends State<MyHomePage> {
       ..strokeWidth = 3.0;
 
     final textPainter = TextPainter(
-      textAlign: TextAlign.left,
-      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.end,
+      textDirection: ui.TextDirection.ltr,
     );
 
     for (final result in recognitions) {
@@ -369,7 +337,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final textSpan = TextSpan(
         text: '$tag ($confidence%)',
         style: const TextStyle(
-          color: Colors.white,
+          color: Colors.black,
           fontSize: 16,
         ),
       );
@@ -432,7 +400,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final annotatedImage = await _annoterImage(image, result.cast<Map<String, dynamic>>());
 
     setState(() {
-      _recognitions = result.cast<Map<String, dynamic>>(); // Met à jour la variable _recognitions
+      _recognitions = result.cast<Map<String, dynamic>>();
       _imageSelectionnee = annotatedImage;
       _isLoading = false;
     });
@@ -450,3 +418,4 @@ class _MyHomePageState extends State<MyHomePage> {
     print("Modèle chargé");
   }
 }
+

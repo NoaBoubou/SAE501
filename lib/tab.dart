@@ -22,16 +22,14 @@ class TabPage extends StatefulWidget {
 }
 
 class _TabPageState extends State<TabPage> {
-  int _selectedIndex = 0; // Indice de l'onglet sélectionné
+  int _selectedIndex = 0;
 
-  // Liste des pages associées aux onglets
   final List<Widget> _pages = [
-    MyHomePage(title: "Détection d'objets"), // Accueil
-    const HistoriquePage(historique: [], title: "Historique",), // Historique (avec données vides au départ)
-    const ComptePage(title: "Compte"), // Compte
+    MyHomePage(title: "Détection d'objets"),
+    const HistoriquePage(historique: [], title: "Historique",),
+    const ComptePage(title: "Compte"),
   ];
 
-  // Fonction pour récupérer l'historique de l'utilisateur
   Future<List<Map<String, dynamic>>> getHistorique() async {
     FirebaseFirestore db = FirebaseFirestore.instance;
     List<Map<String, dynamic>> historiqueData = [];
@@ -62,32 +60,24 @@ class _TabPageState extends State<TabPage> {
     return historiqueData;
   }
 
-  // Fonction pour gérer le clic sur l'onglet "Historique"
-// Fonction pour gérer le clic sur l'onglet "Historique"
   void _viewHistorique() async {
-    // Affichage de l'indicateur de chargement
     showDialog(
       context: context,
-      barrierDismissible: false, // Empêcher de fermer le dialogue par un clic externe
+      barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
-      // Récupérer les données d'historique
       List<Map<String, dynamic>> historiqueData = await getHistorique();
 
-      // Fermer l'indicateur de chargement
       Navigator.pop(context);
 
-      // Mettre à jour la page Historique avec les données récupérées
       setState(() {
-        _pages[1] = HistoriquePage(historique: historiqueData, title: "Historique"); // Mise à jour de la page Historique
+        _pages[1] = HistoriquePage(historique: historiqueData, title: "Historique");
       });
     } catch (e) {
-      // Fermer l'indicateur de chargement en cas d'erreur
       Navigator.pop(context);
 
-      // Affichage d'un message d'erreur si la récupération échoue
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -104,15 +94,11 @@ class _TabPageState extends State<TabPage> {
     }
   }
 
-
-  // Gestion de la navigation entre les onglets
-// Gestion de la navigation entre les onglets
   void _onTabTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
 
-    // Si l'onglet Historique est sélectionné, lancer le chargement des données
     if (index == 1) {
       _viewHistorique();
     }
@@ -125,24 +111,26 @@ class _TabPageState extends State<TabPage> {
       /*appBar: AppBar(
         title: const Text('Flutter Vision'),
       ),*/
-      body: _pages[_selectedIndex], // Charge la page associée à l'onglet
+      body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onTabTapped,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Icon(Icons.home, color: Colors.orange,),
             label: 'Accueil',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Historique',
+            icon: Icon(Icons.history, color: Colors.orange,),
+            label: 'Historique'
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+            icon: Icon(Icons.person, color: Colors.orange,),
             label: 'Compte',
           ),
         ],
+        unselectedItemColor: Colors.black,
+        selectedItemColor: Colors.black,
       ),
     );
   }

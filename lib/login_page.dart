@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'main.dart'; // Importez MyHomePage
+import 'main.dart';
 import 'register_page.dart';
 import 'tab.dart';
 
@@ -36,7 +36,6 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isNotEmpty && password.isNotEmpty) {
       try {
-        // Connexion avec Firebase
         final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: email,
           password: password,
@@ -44,15 +43,13 @@ class _LoginPageState extends State<LoginPage> {
 
         print('Connexion réussie : ${userCredential.user?.uid}');
 
-        // Redirigez vers MyHomePage
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => const TabPage(),//builder: (context) => const MyHomePage(title: 'Détection d\'objets'),
+            builder: (context) => const TabPage(),
           ),
         );
       } on FirebaseAuthException catch (e) {
-        // Gérer les exceptions spécifiques à FirebaseAuth
         String errorMessage = 'Une erreur est survenue.';
         if (e.code == 'user-not-found') {
           errorMessage = 'Aucun utilisateur trouvé pour cet email.';
@@ -69,14 +66,12 @@ class _LoginPageState extends State<LoginPage> {
           SnackBar(content: Text(errorMessage)),
         );
       } catch (e) {
-        // Gérer les autres erreurs inattendues
         print('Erreur inattendue : $e');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Une erreur est survenue.')),
         );
       }
     } else {
-      // Validation des champs
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Veuillez remplir tous les champs.')),
       );
@@ -128,7 +123,7 @@ class _LoginPageState extends State<LoginPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _login,
-                  child: const Text('Login'),
+                  child: const Text('Login', style: TextStyle(color:Colors.black),),
                 ),
               ),
               const SizedBox(height: 10),

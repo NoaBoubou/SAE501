@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'main.dart'; // Importez MyHomePage pour la redirection
+import 'main.dart';
 import 'tab.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -30,7 +30,6 @@ class _RegisterPageState extends State<RegisterPage> {
     if (_formKey.currentState!.validate()) {
       if (password1 == password2) {
         try {
-          // Vérifier si l'email existe déjà dans Authentication
           final List<String> methods = await _auth.fetchSignInMethodsForEmail(email);
           if (methods.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -39,25 +38,21 @@ class _RegisterPageState extends State<RegisterPage> {
             return;
           }
 
-          // Créer l'utilisateur
           UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
             email: email,
             password: password1,
           );
 
-          // Enregistrer des informations supplémentaires dans Firestore
           await _firestore.collection('users').doc(userCredential.user!.uid).set({
             'name': name,
             'email': email,
             'created_at': FieldValue.serverTimestamp(),
           });
 
-          // Afficher un message de succès
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Inscription réussie !')),
           );
 
-          // Réinitialiser les champs et rediriger vers MyHomePage
           _emailController.clear();
           _nameController.clear();
           _password1Controller.clear();
@@ -65,11 +60,10 @@ class _RegisterPageState extends State<RegisterPage> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => const TabPage(),//builder: (context) => const MyHomePage(title: 'Détection d\'objets'),
+              builder: (context) => const TabPage(),
             ),
           );
         } on FirebaseAuthException catch (e) {
-          // Gérer les erreurs de Firebase Authentication
           String errorMessage;
           if (e.code == 'email-already-in-use') {
             errorMessage = 'Cet email est déjà utilisé.';
@@ -84,7 +78,6 @@ class _RegisterPageState extends State<RegisterPage> {
           );
         }
       } else {
-        // Les mots de passe ne correspondent pas
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Les mots de passe ne correspondent pas.')),
         );
@@ -172,7 +165,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _register,
-                  child: const Text('Inscription'),
+                  child: const Text('Inscription', style: TextStyle(color: Colors.black),),
                 ),
               ),
             ],
