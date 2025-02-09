@@ -67,14 +67,24 @@ class _ComptePageState extends State<ComptePage> {
       User? user = FirebaseAuth.instance.currentUser;
 
       if (user != null) {
+        QuerySnapshot existingUsers = await FirebaseFirestore.instance
+            .collection('users')
+            .where('name', isEqualTo: _nameController.text)
+            .get();
+
+        if (existingUsers.docs.isNotEmpty && existingUsers.docs.first.id != user.uid) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ce pseudo est déjà pris. Essayez-en un autre.')),
+          );
+          return;
+        }
+
         List<String> signInMethods = await FirebaseAuth.instance
             .fetchSignInMethodsForEmail(_emailController.text);
 
         if (signInMethods.isNotEmpty && _emailController.text != user.email) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cet e-mail est déjà utilisé par un autre utilisateur.'),
-            ),
+            const SnackBar(content: Text('Cet e-mail est déjà utilisé par un autre utilisateur.')),
           );
           return;
         }
@@ -88,18 +98,13 @@ class _ComptePageState extends State<ComptePage> {
 
         await user.updateEmail(_emailController.text);
 
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .update({
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
           'name': _nameController.text,
           'email': _emailController.text,
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Informations mises à jour avec succès. Veuillez vous reconnecter.'),
-          ),
+          const SnackBar(content: Text('Informations mises à jour avec succès. Veuillez vous reconnecter.')),
         );
 
         FirebaseAuth.instance.signOut();
@@ -115,6 +120,7 @@ class _ComptePageState extends State<ComptePage> {
       );
     }
   }
+
 
 
 

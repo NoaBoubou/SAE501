@@ -30,6 +30,18 @@ class _RegisterPageState extends State<RegisterPage> {
     if (_formKey.currentState!.validate()) {
       if (password1 == password2) {
         try {
+          QuerySnapshot existingUsers = await FirebaseFirestore.instance
+              .collection('users')
+              .where('name', isEqualTo: name)
+              .get();
+
+          if (existingUsers.docs.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Ce pseudo est déjà utilisé. Choisissez-en un autre.')),
+            );
+            return; 
+          }
+
           final List<String> methods = await _auth.fetchSignInMethodsForEmail(email);
           if (methods.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -43,7 +55,7 @@ class _RegisterPageState extends State<RegisterPage> {
             password: password1,
           );
 
-          await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
             'name': name,
             'email': email,
             'created_at': FieldValue.serverTimestamp(),
@@ -59,9 +71,7 @@ class _RegisterPageState extends State<RegisterPage> {
           _password2Controller.clear();
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (context) => const TabPage(),
-            ),
+            MaterialPageRoute(builder: (context) => const TabPage()),
           );
         } on FirebaseAuthException catch (e) {
           String errorMessage;
@@ -84,6 +94,7 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

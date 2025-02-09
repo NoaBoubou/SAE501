@@ -1,0 +1,206 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+class PartagePage extends StatelessWidget {
+  const PartagePage({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.orange,
+        title: const Text("Partages"),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('partages').snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+          final partages = snapshot.data!.docs.where((doc) {
+            List<dynamic> recipients = doc['recipients'];
+            return doc['senderId'] == userId || recipients.contains(userId);
+          }).toList();
+
+          return ListView.builder(
+            itemCount: partages.length,
+            itemBuilder: (context, index) {
+              final partage = partages[index];
+              final senderId = partage['senderId'];
+              final detectionId = partage['detectionId'];
+              final date = partage['date'];
+              final recipients = List<String>.from(partage['recipients']);
+
+              return FutureBuilder<Map<String, dynamic>>(
+                future: _getPartageDetails(senderId, recipients, detectionId),
+                builder: (context, detailsSnapshot) {
+                  if (!detailsSnapshot.hasData) return const CircularProgressIndicator();
+                  final details = detailsSnapshot.data!;
+                  
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            details['title'],
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Détection du $date',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          ...details['detectionResults'].map<Widget>((result) {
+                            return Text(
+                              'Objet : ${result['object_class']}avec une confiance de ${result['confiance']}',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            );
+                          }).toList(),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              _voirImage(context, detectionId, senderId);
+                            },
+                            child: const Text('Voir Image', style: TextStyle(color: Colors.black)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> _getPartageDetails(
+      String senderId, List<String> recipients, String detectionId) async {
+    String senderName = await _getUserName(senderId);
+
+    List<String> recipientNames = [];
+    for (String recipientId in recipients) {
+      String name = await _getUserName(recipientId);
+      recipientNames.add(name);
+    }
+
+    List<Map<String, dynamic>> detectionResults = await _getDetectionResults(senderId, detectionId);
+
+    return {
+      'title': senderId == FirebaseAuth.instance.currentUser!.uid
+          ? "Vous avez partagé à ${recipientNames.join(", ")}"
+          : "Partagé par $senderName",
+      'detectionResults': detectionResults,
+    };
+  }
+
+  Future<String> _getUserName(String userId) async {
+    try {
+      DocumentSnapshot userDoc =
+          await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      return userDoc.exists ? userDoc['name'] : "Utilisateur inconnu";
+    } catch (e) {
+      return "Utilisateur inconnu";
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _getDetectionResults(
+      String senderId, String detectionId) async {
+    try {
+      DocumentSnapshot detectionDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(senderId)
+          .collection('historique')
+          .doc(detectionId)
+          .get();
+
+      if (detectionDoc.exists) {
+        return List<Map<String, dynamic>>.from(detectionDoc['resultats']);
+      } else {
+        return [];
+      }
+    } catch (e) {
+      return [];
+    }
+  }
+
+  void _voirImage(BuildContext context, String detectionId, String senderId) async {
+    try {
+      DocumentSnapshot detectionDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(senderId) 
+          .collection('historique')
+          .doc(detectionId)
+          .get();
+
+      if (detectionDoc.exists && detectionDoc['imageUrl'] != null) {
+        String imageUrl = detectionDoc['imageUrl'];
+
+        // Affiche l'image
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ImageDisplayPage(imageUrl: imageUrl),
+          ),
+        );
+      } else {
+        throw Exception("Image introuvable dans Firestore.");
+      }
+    } catch (e) {
+      print("Erreur de chargement de l'image : $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur : Image introuvable')),
+      );
+    }
+  }
+}
+
+class ImageDisplayPage extends StatelessWidget {
+  final String imageUrl;
+
+  const ImageDisplayPage({Key? key, required this.imageUrl}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Image Partagée'),
+      ),
+      body: Center(
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.contain,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded / (loadingProgress.expectedTotalBytes ?? 1)
+                    : null,
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return const Center(
+              child: Text('Erreur lors du chargement de l\'image'),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}

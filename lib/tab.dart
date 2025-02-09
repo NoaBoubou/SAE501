@@ -14,6 +14,8 @@ import 'package:untitled/login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+import 'partage.dart';
+
 class TabPage extends StatefulWidget {
   const TabPage({Key? key}) : super(key: key);
 
@@ -27,6 +29,7 @@ class _TabPageState extends State<TabPage> {
   final List<Widget> _pages = [
     MyHomePage(title: "Détection d'objets"),
     const HistoriquePage(historique: [], title: "Historique",),
+    const PartagePage(),
     const ComptePage(title: "Compte"),
   ];
 
@@ -108,9 +111,6 @@ class _TabPageState extends State<TabPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      /*appBar: AppBar(
-        title: const Text('Flutter Vision'),
-      ),*/
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -123,6 +123,10 @@ class _TabPageState extends State<TabPage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.history, color: Colors.orange,),
             label: 'Historique'
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.share, color: Colors.orange), 
+            label: 'Partage'
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person, color: Colors.orange,),

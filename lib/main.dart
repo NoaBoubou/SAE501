@@ -265,15 +265,25 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future _enregistrerImageStorage(String docId) async {
+  Future<void> _enregistrerImageStorage(String docId) async {
     if (_imageSelectionnee != null) {
       try {
         FirebaseStorage storage = FirebaseStorage.instance;
-
+        String userId = FirebaseAuth.instance.currentUser!.uid;
         String filePath = 'user/$userId/$docId.jpg';
         Reference ref = storage.ref().child(filePath);
 
         UploadTask uploadTask = ref.putFile(_imageSelectionnee!);
+        TaskSnapshot snapshot = await uploadTask;
+
+        String downloadUrl = await snapshot.ref.getDownloadURL();
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('historique')
+            .doc(docId)
+            .set({'imageUrl': downloadUrl}, SetOptions(merge: true));
 
         setState(() {
           _imageSelectionnee = null;
