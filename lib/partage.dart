@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 class PartagePage extends StatelessWidget {
   const PartagePage({Key? key}) : super(key: key);
@@ -15,6 +13,15 @@ class PartagePage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.orange,
         title: const Text("Partages"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              Navigator.of(context).pushReplacementNamed('/login'); // Redirige vers la page de connexion
+            },
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('partages').snapshots(),
@@ -25,6 +32,15 @@ class PartagePage extends StatelessWidget {
             List<dynamic> recipients = doc['recipients'];
             return doc['senderId'] == userId || recipients.contains(userId);
           }).toList();
+
+          if (partages.isEmpty) {
+            return const Center(
+              child: Text(
+                "Aucun partage disponible.",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+            );
+          }
 
           return ListView.builder(
             itemCount: partages.length,
@@ -40,7 +56,7 @@ class PartagePage extends StatelessWidget {
                 builder: (context, detailsSnapshot) {
                   if (!detailsSnapshot.hasData) return const CircularProgressIndicator();
                   final details = detailsSnapshot.data!;
-                  
+
                   return Card(
                     margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     elevation: 4,
@@ -64,7 +80,7 @@ class PartagePage extends StatelessWidget {
                           const SizedBox(height: 8),
                           ...details['detectionResults'].map<Widget>((result) {
                             return Text(
-                              'Objet : ${result['object_class']}avec une confiance de ${result['confiance']}',
+                              'Objet : ${result['object_class']} avec une confiance de ${result['confiance']}',
                               style: Theme.of(context).textTheme.bodyMedium,
                             );
                           }).toList(),
@@ -142,7 +158,7 @@ class PartagePage extends StatelessWidget {
     try {
       DocumentSnapshot detectionDoc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(senderId) 
+          .doc(senderId)
           .collection('historique')
           .doc(detectionId)
           .get();
@@ -188,7 +204,8 @@ class ImageDisplayPage extends StatelessWidget {
             return Center(
               child: CircularProgressIndicator(
                 value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded / (loadingProgress.expectedTotalBytes ?? 1)
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        (loadingProgress.expectedTotalBytes ?? 1)
                     : null,
               ),
             );

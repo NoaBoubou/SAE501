@@ -154,7 +154,7 @@ class HistoriquePage extends StatelessWidget {
           ? Center(
               child: Text(
                 'Aucun historique disponible.',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w500),
               ),
             )
           : ListView.builder(
@@ -185,7 +185,7 @@ class HistoriquePage extends StatelessWidget {
                           var objectClass = detection['object_class'];
                           var confiance = detection['confiance'];
                           return Text(
-                            'Objet : $objectClass' 'avec une confiance de $confiance',
+                            'Objet :' '$objectClass' 'avec une confiance de $confiance',
                             style: Theme.of(context).textTheme.bodyLarge,
                           );
                         }).toList(),
