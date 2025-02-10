@@ -42,20 +42,17 @@ class PartagePage extends StatelessWidget {
             );
           }
 
-          return ListView.builder(
-            itemCount: partages.length,
-            itemBuilder: (context, index) {
-              final partage = partages[index];
-              final senderId = partage['senderId'];
-              final detectionId = partage['detectionId'];
-              final date = partage['date'];
-              final recipients = List<String>.from(partage['recipients']);
+          return FutureBuilder<List<Map<String, dynamic>>>(
+            future: _getAllPartageDetails(partages),
+            builder: (context, detailsSnapshot) {
+              if (!detailsSnapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-              return FutureBuilder<Map<String, dynamic>>(
-                future: _getPartageDetails(senderId, recipients, detectionId),
-                builder: (context, detailsSnapshot) {
-                  if (!detailsSnapshot.hasData) return const CircularProgressIndicator();
-                  final details = detailsSnapshot.data!;
+              final detailsList = detailsSnapshot.data!;
+
+              return ListView.builder(
+                itemCount: detailsList.length,
+                itemBuilder: (context, index) {
+                  final details = detailsList[index];
 
                   return Card(
                     margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -74,7 +71,7 @@ class PartagePage extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Détection du $date',
+                            'Détection du ${details['date']}',
                             style: Theme.of(context).textTheme.bodyLarge,
                           ),
                           const SizedBox(height: 8),
@@ -87,7 +84,7 @@ class PartagePage extends StatelessWidget {
                           const SizedBox(height: 8),
                           ElevatedButton(
                             onPressed: () {
-                              _voirImage(context, detectionId, senderId);
+                              _voirImage(context, details['detectionId'], details['senderId']);
                             },
                             child: const Text('Voir Image', style: TextStyle(color: Colors.black)),
                           ),
@@ -101,7 +98,33 @@ class PartagePage extends StatelessWidget {
           );
         },
       ),
+
     );
+  }
+
+  Future<List<Map<String, dynamic>>> _getAllPartageDetails(List<QueryDocumentSnapshot> partages) async {
+    List<Future<Map<String, dynamic>>> futures = partages.map((partage) async {
+      String senderId = partage['senderId'];
+      String detectionId = partage['detectionId'];
+      List<String> recipients = List<String>.from(partage['recipients']);
+      String date = partage['date'];
+
+      String senderName = await _getUserName(senderId);
+      List<String> recipientNames = await Future.wait(recipients.map(_getUserName));
+      List<Map<String, dynamic>> detectionResults = await _getDetectionResults(senderId, detectionId);
+
+      return {
+        'title': senderId == FirebaseAuth.instance.currentUser!.uid
+            ? "Vous avez partagé à ${recipientNames.join(", ")}"
+            : "Partagé par $senderName",
+        'detectionResults': detectionResults,
+        'detectionId': detectionId,
+        'senderId': senderId,
+        'date': date,
+      };
+    }).toList();
+
+    return await Future.wait(futures);
   }
 
   Future<Map<String, dynamic>> _getPartageDetails(
