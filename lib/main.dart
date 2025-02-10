@@ -436,7 +436,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future _envoyerCorrection() async {
-    if (_imageOriginale == null) return; 
+    if (_imageOriginale == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
 
     List<Map<String, dynamic>> _correctedRecognitions = [];
 
@@ -456,6 +460,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _isCorrect = null;
       _recognitions = null;
       resultats = [];
+      _isLoading = false;
     });
   }
 
