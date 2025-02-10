@@ -244,8 +244,14 @@ class _MyHomePageState extends State<MyHomePage> {
       _imageOriginale = File(imageRetournee.path);
     });
 
+    // Efface le cache des images pour forcer le rechargement
+    imageCache.clear(); 
+    imageCache.clearLiveImages();
+
     _detectImage(_imageSelectionnee!);
   }
+
+
 
 
   Future _detectImage(File image) async {
