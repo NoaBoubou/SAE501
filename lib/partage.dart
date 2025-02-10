@@ -150,7 +150,6 @@ class PartagePage extends StatelessWidget {
       if (detectionDoc.exists && detectionDoc['imageUrl'] != null) {
         String imageUrl = detectionDoc['imageUrl'];
 
-        // Affiche l'image
         Navigator.push(
           context,
           MaterialPageRoute(

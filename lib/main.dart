@@ -62,6 +62,13 @@ class _MyHomePageState extends State<MyHomePage> {
   List<Map<String, dynamic>>? _recognitions;
   final FlutterVision _vision = FlutterVision();
   bool _isLoading = false;
+  bool? _isCorrect;
+  final TextEditingController _correctionController = TextEditingController();
+  List<Map<String, dynamic>> resultats = [];
+  List<TextEditingController> _controllers = [];
+  File? _imageOriginale; 
+
+
 
   @override
   void initState() {
@@ -69,38 +76,10 @@ class _MyHomePageState extends State<MyHomePage> {
     _loadModel();
   }
 
-  final userId = FirebaseAuth.instance.currentUser?.uid;
-
-
-  Future<List<Map<String, dynamic>>> getHistorique() async {
-    FirebaseFirestore db = FirebaseFirestore.instance;
-    List<Map<String, dynamic>> historiqueData = [];
-
-    try {
-      QuerySnapshot usersSnapshot = await db.collection("users").get();
-
-      var historiqueSnapshot = await db.collection("users").doc(userId).collection("historique").get();
-
-      for (var histoDoc in historiqueSnapshot.docs) {
-        Map<String, dynamic> entry = {
-          'userId': userId,
-          'historiqueId': histoDoc.id,
-          ...histoDoc.data(),
-        };
-
-        historiqueData.add(entry);
-      }
-    } catch (e) {
-      print("Erreur lors de la récupération de l'historique : $e");
-    }
-    print(historiqueData);
-
-    return historiqueData;
-  }
-
   @override
   void dispose() {
     _vision.closeYoloModel();
+    _correctionController.dispose();
     super.dispose();
   }
 
@@ -110,270 +89,164 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         backgroundColor: Colors.orange,
         title: Text(widget.title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const LoginPage(),
-                ),
-              );
-            },
-          ),
-        ],
       ),
       body: Center(
         child: _isLoading
             ? const CircularProgressIndicator()
-            : SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              const SizedBox(height: 20),
-              const SizedBox(height: 20),
-              _imageSelectionnee != null
-                  ? Image.file(_imageSelectionnee!)
-                  : Image.asset('assets/galery.png'),
-              const SizedBox(height: 20),
-              if (_recognitions != null && _recognitions!.isNotEmpty)
-                Column(
-                  children: [
-                    const Text(
-                      'Résultats de la détection :',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+            : SingleChildScrollView( 
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    _imageSelectionnee != null
+                        ? Image.file(_imageSelectionnee!)
+                        : Image.asset('assets/galery.png'),
+                    const SizedBox(height: 20),
+
+                    if (_recognitions != null && _recognitions!.isNotEmpty)
+                      SizedBox(
+                        height: 300,
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              const Text('Résultats de la détection :',
+                                  style: TextStyle(fontWeight: FontWeight.bold)),
+
+                              ..._recognitions!.map((result) => Text(
+                                    'Objet: ${result['tag']}, Confiance: ${(result['box'][4] * 100).toStringAsFixed(2)}%',
+                                  )),
+
+                              const SizedBox(height: 10),
+
+                              if (_isCorrect == null)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: () => setState(() => _isCorrect = true),
+                                      child: const Text("Correct"),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _isCorrect = false;
+                                          _controllers = List.generate(
+                                            _recognitions!.length,
+                                            (index) => TextEditingController(
+                                                text: _recognitions![index]['tag']),
+                                          );
+                                        });
+                                      },
+                                      child: const Text("Incorrect"),
+                                    ),
+                                  ],
+                                )
+
+                              else if (_isCorrect == true)
+                                Column(
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: _enregistrerImageFirestore,
+                                      child: const Text("Enregistrer"),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: _annulerImage,
+                                      child: const Text("Annuler"),
+                                    ),
+                                  ],
+                                )
+
+                              else
+                                Column(
+                                  children: [
+                                    const Text("Corrigez les erreurs détectées :",
+                                        style: TextStyle(fontWeight: FontWeight.bold)),
+
+                                    for (int i = 0; i < _recognitions!.length; i++)
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 5, horizontal: 20),
+                                        child: TextField(
+                                          controller: _controllers[i],
+                                          decoration: InputDecoration(
+                                            labelText:
+                                                "Correction pour ${_recognitions![i]['tag']}",
+                                          ),
+                                        ),
+                                      ),
+
+                                    const SizedBox(height: 10),
+
+                                    ElevatedButton(
+                                      onPressed: _envoyerCorrection,
+                                      child: const Text("Valider la correction"),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    ..._recognitions!.map((result) {
-                      return Text(
-                        'Objet: ${result['tag']}, Confiance: ${(result['box'][4] * 100).toStringAsFixed(2)}%',
-                        style: const TextStyle(fontSize: 14),
-                      );
-                    }),
+
+                    if (_imageSelectionnee == null)
+                      Column(
+                        children: [
+                          SizedBox(
+                            width: 300,
+                            child: ElevatedButton.icon(
+                              onPressed: _prendreImageCamera,
+                              icon: const Icon(Icons.camera_alt, color: Colors.orange),
+                              label: const Text(
+                                "Prendre une photo avec la caméra",
+                                style: TextStyle(color: Colors.black),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: 300,
+                            child: ElevatedButton.icon(
+                              onPressed: _prendreImageGalerie,
+                              icon: const Icon(Icons.photo_album, color: Colors.orange),
+                              label: const Text(
+                                "Prendre une photo de la galerie",
+                                style: TextStyle(color: Colors.black),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-              const SizedBox(height: 20),
-              _imageSelectionnee == null
-                  ? Column(
-                children: [
-                  SizedBox(
-                    width: 300,
-                    child: ElevatedButton.icon(
-                      onPressed: _prendreImageCamera,
-                      icon: const Icon(Icons.camera_alt, color: Colors.orange,),
-                      label: const Text(
-                        "Prendre une photo avec la caméra",
-                        style: TextStyle(color: Colors.black),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: 300,
-                    child: ElevatedButton.icon(
-                      onPressed: _prendreImageGalerie,
-                      icon: const Icon(Icons.photo_album, color: Colors.orange,),
-                      label: const Text("Prendre une photo de la galerie",
-                          style: TextStyle(color: Colors.black)
-                      ),
-                    ),
-                  ),
-                ],
-              )
-                  : Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _enregistrerImageFirestore,
-                      icon: const Icon(Icons.save, color: Colors.orange,),
-                      label: const Text("Enregistrer", style: TextStyle(color: Colors.black),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _annulerImage,
-                      icon: const Icon(Icons.cancel, color: Colors.orange,),
-                      label: const Text("Annuler", style: TextStyle(color: Colors.black),
-                      ),
-                    ),
-                  ),
-                ],
               ),
-
-            ],
-          ),
-        ),
       ),
-
     );
-  }
-
-  Future _prendreImageGalerie() async {
-    final imageRetournee =
-    await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (imageRetournee == null) return;
-    setState(() {
-      _imageSelectionnee = File(imageRetournee.path);
-    });
-    _detectImage(_imageSelectionnee!);
   }
 
   Future _prendreImageCamera() async {
-    final imageRetournee =
-    await ImagePicker().pickImage(source: ImageSource.camera);
+    final imageRetournee = await ImagePicker().pickImage(source: ImageSource.camera);
     if (imageRetournee == null) return;
+    
     setState(() {
       _imageSelectionnee = File(imageRetournee.path);
+      _imageOriginale = File(imageRetournee.path); 
     });
+
     _detectImage(_imageSelectionnee!);
   }
 
-  Future _enregistrerImageFirestore() async {
-    try {
-      DocumentReference userDoc = FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid);
-      CollectionReference historiqueCollection = userDoc.collection('historique');
-      DateTime today = DateTime.now();
+  Future _prendreImageGalerie() async {
+    final imageRetournee = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (imageRetournee == null) return;
 
-      String dateStr = DateFormat("dd/MM/yyyy").format(today);
-
-      Map<String, dynamic> data = {
-        'resultats': resultats,
-        'date': dateStr,
-      };
-
-      DocumentReference docRef = await historiqueCollection.add(data);
-      String docId = docRef.id;
-
-      _enregistrerImageStorage(docId);
-
-      setState(() {
-        _imageSelectionnee = null;
-      });
-
-      return(docId);
-    } catch (e) {
-      print('Erreur lors de l\'enregistrement dans Firebase : $e');
-    }
-  }
-
-  Future<void> _enregistrerImageStorage(String docId) async {
-    if (_imageSelectionnee != null) {
-      try {
-        FirebaseStorage storage = FirebaseStorage.instance;
-        String userId = FirebaseAuth.instance.currentUser!.uid;
-        String filePath = 'user/$userId/$docId.jpg';
-        Reference ref = storage.ref().child(filePath);
-
-        UploadTask uploadTask = ref.putFile(_imageSelectionnee!);
-        TaskSnapshot snapshot = await uploadTask;
-
-        String downloadUrl = await snapshot.ref.getDownloadURL();
-
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .collection('historique')
-            .doc(docId)
-            .set({'imageUrl': downloadUrl}, SetOptions(merge: true));
-
-        setState(() {
-          _imageSelectionnee = null;
-          _recognitions = null;
-          resultats = [];
-        });
-
-      } catch (e) {
-        print('Erreur lors du téléchargement de l\'image: $e');
-      }
-    }
-  }
-
-  Future _annulerImage() async {
     setState(() {
-      _imageSelectionnee = null;
-      _recognitions = null;
-      resultats = [];
+      _imageSelectionnee = File(imageRetournee.path);
+      _imageOriginale = File(imageRetournee.path);
     });
+
+    _detectImage(_imageSelectionnee!);
   }
 
-  Future<File> _annoterImage(File image, List<Map<String, dynamic>> recognitions) async {
-    final imageBytes = await image.readAsBytes();
-    final originalImage = await decodeImageFromList(imageBytes);
-
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-
-    final paintImage = Paint();
-    canvas.drawImage(
-      originalImage,
-      Offset.zero,
-      paintImage,
-    );
-
-    final paintBox = Paint()
-      ..color = const Color(0xFFFF0000)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0;
-
-    final textPainter = TextPainter(
-      textAlign: TextAlign.end,
-      textDirection: ui.TextDirection.ltr,
-    );
-
-    for (final result in recognitions) {
-      final box = result['box'];
-      final tag = result['tag'];
-      final confidence = (box[4] * 100).toStringAsFixed(2);
-
-      canvas.drawRect(
-        Rect.fromLTRB(
-          box[0].toDouble(),
-          box[1].toDouble(),
-          box[2].toDouble(),
-          box[3].toDouble(),
-        ),
-        paintBox,
-      );
-
-      final textSpan = TextSpan(
-        text: '$tag ($confidence%)',
-        style: const TextStyle(
-          color: Colors.black,
-          fontSize: 16,
-        ),
-      );
-      textPainter.text = textSpan;
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(box[0].toDouble(), box[1].toDouble() - 20));
-    }
-
-    final picture = recorder.endRecording();
-    final annotatedImage = await picture.toImage(
-      originalImage.width,
-      originalImage.height,
-    );
-
-    final byteData = await annotatedImage.toByteData(format: ui.ImageByteFormat.png);
-    final annotatedImageBytes = byteData!.buffer.asUint8List();
-
-    final directory = await getTemporaryDirectory();
-    final path = '${directory.path}/annotated_image.png';
-    final annotatedFile = File(path);
-    await annotatedFile.writeAsBytes(annotatedImageBytes);
-
-    return annotatedFile;
-  }
-
-  List<Map<String, dynamic>> resultats = [];
 
   Future _detectImage(File image) async {
     setState(() {
@@ -416,6 +289,185 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  Future<File> _annoterImage(File imageVierge, List<Map<String, dynamic>> recognitions) async {
+    final imageBytes = await imageVierge.readAsBytes();
+    final originalImage = await decodeImageFromList(imageBytes);
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    final paintImage = Paint();
+    canvas.drawImage(originalImage, Offset.zero, paintImage);
+
+    final paintBox = Paint()
+      ..color = const Color(0xFFFF0000)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
+
+    final textPainter = TextPainter(textAlign: TextAlign.end, textDirection: ui.TextDirection.ltr);
+
+    for (final result in recognitions) {
+      final box = result['box'];
+      final tag = result['tag']; 
+      final confidence = (box[4] * 100).toStringAsFixed(2);
+
+      canvas.drawRect(
+        Rect.fromLTRB(
+          box[0].toDouble(),
+          box[1].toDouble(),
+          box[2].toDouble(),
+          box[3].toDouble(),
+        ),
+        paintBox,
+      );
+
+      final textSpan = TextSpan(
+        text: '$tag ($confidence%)',
+        style: const TextStyle(
+          color: Colors.black,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+      textPainter.text = textSpan;
+      textPainter.layout();
+      textPainter.paint(canvas, Offset(box[0].toDouble(), box[1].toDouble() - 20));
+    }
+
+    final picture = recorder.endRecording();
+    final annotatedImage = await picture.toImage(originalImage.width, originalImage.height);
+
+    final byteData = await annotatedImage.toByteData(format: ui.ImageByteFormat.png);
+    final annotatedImageBytes = byteData!.buffer.asUint8List();
+
+    final directory = await getTemporaryDirectory();
+    final path = '${directory.path}/corrected_image.png';
+    final correctedFile = File(path);
+    await correctedFile.writeAsBytes(annotatedImageBytes);
+
+    return correctedFile;
+  }
+
+
+
+
+  Future _enregistrerImageFirestore() async {
+    try {
+      DocumentReference userDoc = FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid);
+      CollectionReference historiqueCollection = userDoc.collection('historique');
+      DateTime today = DateTime.now();
+
+      String dateStr = DateFormat("dd/MM/yyyy").format(today);
+
+      Map<String, dynamic> data = {
+        'resultats': resultats,
+        'date': dateStr,
+      };
+
+      DocumentReference docRef = await historiqueCollection.add(data);
+      String docId = docRef.id;
+
+      _enregistrerImageStorage(docId);
+
+      setState(() {
+        _imageSelectionnee = null;
+      });
+
+      return(docId);
+    } catch (e) {
+      print('Erreur lors de l\'enregistrement dans Firebase : $e');
+    }
+  }
+
+  Future<void> _enregistrerImageStorage(String docId) async {
+    if (_imageSelectionnee != null) {
+      setState(() {
+        _recognitions = null;
+        _isCorrect = null;
+      });
+
+      try {
+        FirebaseStorage storage = FirebaseStorage.instance;
+        String userId = FirebaseAuth.instance.currentUser!.uid;
+        String filePath = 'user/$userId/$docId.jpg';
+        Reference ref = storage.ref().child(filePath);
+
+        UploadTask uploadTask = ref.putFile(_imageSelectionnee!);
+        TaskSnapshot snapshot = await uploadTask;
+
+        String downloadUrl = await snapshot.ref.getDownloadURL();
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('historique')
+            .doc(docId)
+            .set({'imageUrl': downloadUrl}, SetOptions(merge: true));
+
+        setState(() {
+          _imageSelectionnee = null;
+          resultats = [];
+        });
+
+      } catch (e) {
+        print('Erreur lors du téléchargement de l\'image: $e');
+      }
+    }
+  }
+
+  Future _envoyerCorrection() async {
+    if (_imageOriginale == null) return; 
+
+    List<Map<String, dynamic>> _correctedRecognitions = [];
+
+    for (int i = 0; i < _recognitions!.length; i++) {
+      _correctedRecognitions.add({
+        'tag': _controllers[i].text, 
+        'box': _recognitions![i]['box'],
+      });
+    }
+
+    final correctedImage = await _annoterImage(_imageOriginale!, _correctedRecognitions);
+
+    await _enregistrerImagePourAdmin(correctedImage);
+
+    setState(() {
+      _imageSelectionnee = null;
+      _isCorrect = null;
+      _recognitions = null;
+      resultats = [];
+    });
+  }
+
+
+
+  Future<void> _enregistrerImagePourAdmin(File image) async {
+    try {
+      FirebaseStorage storage = FirebaseStorage.instance;
+      String userId = FirebaseAuth.instance.currentUser!.uid;
+      String filePath = 'Admin/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      Reference ref = storage.ref().child(filePath);
+
+      await ref.putFile(image);
+    } catch (e) {
+      print('Erreur lors de l\'enregistrement de l\'image pour l\'admin: $e');
+    }
+  }
+
+
+
+
+
+  Future _annulerImage() async {
+    setState(() {
+      _imageSelectionnee = null;
+      _recognitions = null;
+      _isCorrect = null;
+      resultats = [];
+    });
+  }
+
+
   _loadModel() async {
     await _vision.loadYoloModel(
       labels: 'assets/labels.txt',
@@ -425,7 +477,5 @@ class _MyHomePageState extends State<MyHomePage> {
       numThreads: 1,
       useGpu: false,
     );
-    print("Modèle chargé");
   }
 }
-
