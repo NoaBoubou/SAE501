@@ -156,7 +156,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 10), // Espacement entre les boutons
+                                    const SizedBox(height: 10)
                                     ElevatedButton(
                                       onPressed: _annulerImage,
                                       child: const Text("Annuler"),
@@ -197,15 +197,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                       ),
                                     const SizedBox(height: 10),
 
-                                    // Les boutons côte à côte dans un Row
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.center, // Centre les boutons
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         ElevatedButton(
                                           onPressed: _envoyerCorrection,
                                           child: const Text("Valider la correction"),
                                         ),
-                                        const SizedBox(width: 10), // Espacement entre les boutons
+                                        const SizedBox(width: 10),
                                         ElevatedButton(
                                           onPressed: _annulerImage,
                                           child: const Text("Annuler"),
