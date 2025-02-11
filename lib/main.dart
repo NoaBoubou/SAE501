@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/painting.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:untitled/historique.dart';
 import 'package:untitled/login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';

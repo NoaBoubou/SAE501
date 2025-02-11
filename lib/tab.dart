@@ -1,20 +1,12 @@
-import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter_vision/flutter_vision.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter/painting.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import 'package:untitled/admin_page.dart';
 import 'package:untitled/compte.dart';
 import 'package:untitled/historique.dart';
 import 'package:untitled/main.dart';
-import 'package:untitled/login_page.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-
-import 'partage.dart';
+import 'package:untitled/partage.dart';
 
 class TabPage extends StatefulWidget {
   const TabPage({Key? key}) : super(key: key);
@@ -25,13 +17,46 @@ class TabPage extends StatefulWidget {
 
 class _TabPageState extends State<TabPage> {
   int _selectedIndex = 0;
+  bool _isAdmin = false; 
 
-  final List<Widget> _pages = [
-    MyHomePage(title: "Détection d'objets"),
-    const HistoriquePage(historique: [], title: "Historique",),
-    const PartagePage(),
-    const ComptePage(title: "Compte"),
-  ];
+  List<Widget> _pages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfAdmin();
+  }
+
+  Future<void> _checkIfAdmin() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    DocumentSnapshot userDoc =
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+
+    if (userDoc.exists && userDoc['role'] == 'admin') {
+      setState(() {
+        _isAdmin = true;
+      });
+    }
+
+    _setupPages();
+  }
+
+  void _setupPages() {
+    setState(() {
+      _pages = [
+        MyHomePage(title: "Détection d'objets"),
+        const HistoriquePage(historique: [], title: "Historique"),
+        const PartagePage(),
+        const ComptePage(title: "Compte"),
+      ];
+
+      if (_isAdmin) {
+        _pages.add(const AdminPage());
+      }
+    });
+  }
 
   Future<List<Map<String, dynamic>>> getHistorique() async {
     FirebaseFirestore db = FirebaseFirestore.instance;
@@ -59,7 +84,6 @@ class _TabPageState extends State<TabPage> {
     } catch (e) {
       print("Erreur lors de la récupération de l'historique : $e");
     }
-    print(historiqueData);
     return historiqueData;
   }
 
@@ -107,31 +131,37 @@ class _TabPageState extends State<TabPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: _pages.isNotEmpty
+          ? _pages[_selectedIndex]
+          : const Center(child: CircularProgressIndicator()),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onTabTapped,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: Colors.orange,),
+        items: [
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.home, color: Colors.orange),
             label: 'Accueil',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history, color: Colors.orange,),
-            label: 'Historique'
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.history, color: Colors.orange),
+            label: 'Historique',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.share, color: Colors.orange), 
-            label: 'Partage'
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.share, color: Colors.orange),
+            label: 'Partage',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person, color: Colors.orange,),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.person, color: Colors.orange),
             label: 'Compte',
           ),
+          if (_isAdmin) 
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.admin_panel_settings, color: Colors.orange),
+              label: 'Admin',
+            ),
         ],
         unselectedItemColor: Colors.black,
         selectedItemColor: Colors.black,
@@ -139,5 +169,3 @@ class _TabPageState extends State<TabPage> {
     );
   }
 }
-
-

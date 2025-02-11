@@ -18,7 +18,7 @@ class PartagePage extends StatelessWidget {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
-              Navigator.of(context).pushReplacementNamed('/login'); // Redirige vers la page de connexion
+              Navigator.of(context).pushReplacementNamed('/login');
             },
           ),
         ],

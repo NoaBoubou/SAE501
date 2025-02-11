@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'main.dart';
 import 'tab.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -19,7 +18,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
   final _formKey = GlobalKey<FormState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   void _register() async {
     final email = _emailController.text.trim();
@@ -59,6 +57,7 @@ class _RegisterPageState extends State<RegisterPage> {
             'name': name,
             'email': email,
             'created_at': FieldValue.serverTimestamp(),
+            'role': 'user',
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -94,6 +93,7 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     }
   }
+
 
 
   @override
