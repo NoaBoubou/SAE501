@@ -106,7 +106,7 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         child: _isLoading
             ? const CircularProgressIndicator()
-            : SingleChildScrollView( 
+            : SingleChildScrollView(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
@@ -131,26 +131,35 @@ class _MyHomePageState extends State<MyHomePage> {
                               const SizedBox(height: 10),
 
                               if (_isCorrect == null)
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                                Column(
                                   children: [
-                                    ElevatedButton(
-                                      onPressed: () => setState(() => _isCorrect = true),
-                                      child: const Text("Correct"),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        ElevatedButton(
+                                          onPressed: () => setState(() => _isCorrect = true),
+                                          child: const Text("Correct"),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              _isCorrect = false;
+                                              _controllers = List.generate(
+                                                _recognitions!.length,
+                                                    (index) => TextEditingController(
+                                                    text: _recognitions![index]['tag']),
+                                              );
+                                            });
+                                          },
+                                          child: const Text("Incorrect"),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 10),
+                                    const SizedBox(height: 10), // Espacement entre les boutons
                                     ElevatedButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _isCorrect = false;
-                                          _controllers = List.generate(
-                                            _recognitions!.length,
-                                            (index) => TextEditingController(
-                                                text: _recognitions![index]['tag']),
-                                          );
-                                        });
-                                      },
-                                      child: const Text("Incorrect"),
+                                      onPressed: _annulerImage,
+                                      child: const Text("Annuler"),
                                     ),
                                   ],
                                 )
@@ -172,36 +181,55 @@ class _MyHomePageState extends State<MyHomePage> {
                               else
                                 Column(
                                   children: [
-                                    const Text("Corrigez les erreurs détectées :",
-                                        style: TextStyle(fontWeight: FontWeight.bold)),
-
+                                    const Text(
+                                      "Corrigez les erreurs détectées :",
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
                                     for (int i = 0; i < _recognitions!.length; i++)
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 5, horizontal: 20),
+                                        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 20),
                                         child: TextField(
                                           controller: _controllers[i],
                                           decoration: InputDecoration(
-                                            labelText:
-                                                "Correction pour ${_recognitions![i]['tag']}",
+                                            labelText: "Correction pour ${_recognitions![i]['tag']}",
                                           ),
                                         ),
                                       ),
-
                                     const SizedBox(height: 10),
 
-                                    ElevatedButton(
-                                      onPressed: _envoyerCorrection,
-                                      child: const Text("Valider la correction"),
+                                    // Les boutons côte à côte dans un Row
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center, // Centre les boutons
+                                      children: [
+                                        ElevatedButton(
+                                          onPressed: _envoyerCorrection,
+                                          child: const Text("Valider la correction"),
+                                        ),
+                                        const SizedBox(width: 10), // Espacement entre les boutons
+                                        ElevatedButton(
+                                          onPressed: _annulerImage,
+                                          child: const Text("Annuler"),
+                                        ),
+                                      ],
                                     ),
                                   ],
-                                ),
+                                )
                             ],
                           ),
                         ),
+                      )
+                    else if (_imageSelectionnee != null)
+                      Column(
+                        children: [
+                          const Text("Aucun objet détecté."),
+                          const SizedBox(height: 10),
+                          ElevatedButton(
+                            onPressed: _annulerImage,
+                            child: const Text("Annuler"),
+                          ),
+                        ],
                       ),
-
-                    if (_imageSelectionnee == null)
+    if (_imageSelectionnee == null)
                       Column(
                         children: [
                           SizedBox(
@@ -484,6 +512,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future _annulerImage() async {
     setState(() {
+      imageCache.clear();
+      imageCache.clearLiveImages();
+      _imageOriginale = null;
       _imageSelectionnee = null;
       _recognitions = null;
       _isCorrect = null;
