@@ -1,0 +1,24 @@
+- apple
+- beans
+- beetroot
+- bell_pepper
+- cabbage
+- carrot
+- cucumber
+- egg
+- eggplant
+- garlic
+- grape
+- lemon
+- mango
+- napa cabbage
+- onion
+- orange
+- peach
+- pepper
+- potato
+- radish
+- sapota
+- tomato
+- turnip
+- zucchini

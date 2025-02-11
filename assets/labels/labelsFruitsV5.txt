@@ -1,0 +1,6 @@
+- apple
+- banana
+- carrot
+- cucumber
+- lemon
+- tomato

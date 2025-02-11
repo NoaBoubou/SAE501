@@ -1,0 +1,37 @@
+- Bitter melon
+- Brinjal
+- Cabbage
+- Calabash
+- Capsicum
+- Cauliflower
+- Garlic
+- Ginger
+- Green Chili
+- Lady finger
+- Onion
+- Potato
+- Sponge Gourd
+- Tomato
+- annona
+- apple
+- banana
+- beet
+- bell_pepper
+- cabbage
+- carrot
+- cucumber
+- dragon fruit
+- egg
+- eggplant
+- garlic
+- guava
+- onion
+- orange
+- oren
+- pear
+- pineapple
+- pitaya
+- potato
+- sugar apple
+- tomato
+- zucchini
