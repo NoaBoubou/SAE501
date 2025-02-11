@@ -185,7 +185,7 @@ class HistoriquePage extends StatelessWidget {
                           var objectClass = detection['object_class'];
                           var confiance = detection['confiance'];
                           return Text(
-                            'Objet :' '$objectClass' 'avec une confiance de $confiance',
+                            'Objet : ' '$objectClass' ' avec une confiance de $confiance',
                             style: Theme.of(context).textTheme.bodyLarge,
                           );
                         }).toList(),
