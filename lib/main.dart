@@ -156,7 +156,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 10)
+                                    const SizedBox(height: 10),
                                     ElevatedButton(
                                       onPressed: _annulerImage,
                                       child: const Text("Annuler"),
